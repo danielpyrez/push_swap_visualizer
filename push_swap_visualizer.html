@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Push Swap Visualizer</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Work+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #2d2d2d;
+    --line: #4a4a4a;
+    --ink: #f0f0f0;
+    --dim: #9a9a9a;
+    --a: #6d84ff;
+    --b: #f0a13a;
+    --free: #707070;
+    --block-text: #f5f5f5;
+    --accent: #5ed48a;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; height:100%;
+    background: var(--bg);
+    font-family: 'Work Sans', sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+  .app{
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    width:100vw;
+  }
+  .hint{
+    text-align:center;
+    font-size: 15px;
+    color: var(--dim);
+    margin: 14px 0 0;
+    flex-shrink:0;
+  }
+
+  .load-bar, .sim-bar{
+    display:flex;
+    flex-wrap: wrap;
+    justify-content:flex-start;
+    align-items:center;
+    gap:12px;
+    row-gap:8px;
+    padding: 8px 20px 2px;
+    flex-shrink:0;
+    width: 960px;
+    max-width: calc(100vw - 40px);
+    margin: 0 auto;
+  }
+  .sim-bar{ padding: 4px 20px 8px; }
+  .bar-spacer{ width:98px; flex-shrink:0; }
+
+  .random-wrap{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  #randomCount{
+    font-family:'Space Mono', monospace;
+    font-size:14px;
+    padding:9px 8px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:#242424;
+    color: var(--ink);
+    width: 56px;
+    text-align:center;
+    -moz-appearance: textfield;
+  }
+  #randomCount::-webkit-outer-spin-button,
+  #randomCount::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  #randomCount:focus{ outline:none; border-color: var(--ink); }
+  #randomCount:disabled{ opacity:0.45; cursor:not-allowed; }
+
+  #randomBtn{
+    font-family:'Space Mono', monospace;
+    font-size:13.5px;
+    padding:10px 14px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:transparent;
+    color: var(--ink);
+    cursor:pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    white-space:nowrap;
+  }
+  #randomBtn:hover{ border-color: var(--ink); background: rgba(255,255,255,0.06); }
+  #randomBtn:active{ transform: scale(0.96); }
+  #randomBtn:disabled{ opacity:0.3; cursor:not-allowed; }
+  #randomBtn:disabled:hover{ background:transparent; border-color: var(--line); }
+
+  .step-counter{
+    font-family:'Space Mono', monospace;
+    font-size:12.5px;
+    color: var(--dim);
+    white-space:nowrap;
+    min-width: 92px;
+  }
+
+  #speedLabel{
+    display:inline-block;
+    width: 54px;
+    flex-shrink:0;
+  }
+
+  #resetBtn{
+    width: 43px;
+    height: 43px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink);
+    font-size: 18px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+    flex-shrink:0;
+  }
+  #resetBtn:hover{ border-color: var(--ink); background: rgba(255,255,255,0.06); }
+  #resetBtn:active{ transform: scale(0.9) rotate(-50deg); }
+
+  #seriesInput, #movesInput{
+    font-family:'Space Mono', monospace;
+    font-size:15px;
+    padding:10px 14px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:#242424;
+    color: var(--ink);
+    width: 340px;
+  }
+  #seriesInput::placeholder, #movesInput::placeholder{ color: var(--dim); }
+  #seriesInput:focus, #movesInput:focus{ outline:none; border-color: var(--ink); }
+
+  .icon-btn{
+    font-family:'Space Mono', monospace;
+    font-size:15px;
+    width: 43px;
+    height: 43px;
+    border-radius: 8px;
+    border:1px solid var(--line);
+    background:transparent;
+    color: var(--ink);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s, color 0.15s;
+    flex-shrink:0;
+  }
+  .icon-btn svg{ width:18px; height:18px; }
+  .icon-btn:hover{ border-color: var(--ink); background: rgba(255,255,255,0.06); }
+  .icon-btn:active{ transform: scale(0.94); }
+  .icon-btn.copied{ border-color: var(--accent); color: var(--accent); }
+  .icon-btn:disabled{ opacity:0.3; cursor:not-allowed; }
+  .icon-btn:disabled:hover{ background:transparent; border-color: var(--line); }
+
+  #loadBtn{
+    font-family:'Space Mono', monospace;
+    font-size:14px;
+    padding:10px 18px;
+    border-radius:8px;
+    border:1px solid var(--accent);
+    background:transparent;
+    color: var(--accent);
+    cursor:pointer;
+    transition: background 0.15s, transform 0.1s;
+    white-space:nowrap;
+  }
+  #loadBtn:hover{ background: rgba(94,212,138,0.12); }
+  #loadBtn:active{ transform: scale(0.96); }
+
+  .speed-wrap{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color: var(--dim);
+    font-family:'Space Mono', monospace;
+    font-size:12.5px;
+    white-space:nowrap;
+  }
+  #speedRange{
+    width:130px;
+    accent-color: var(--accent);
+  }
+  #playBtn{
+    width: 43px;
+    height: 43px;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-size: 16px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: background 0.15s, transform 0.1s;
+    flex-shrink:0;
+  }
+  #playBtn:hover{ background: rgba(94,212,138,0.12); }
+  #playBtn:active{ transform: scale(0.94); }
+  #playBtn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .board{
+    position:relative;
+    flex:1;
+    display:flex;
+    flex-direction:row;
+    align-items:stretch;
+    justify-content:center;
+    gap: 140px;
+    padding: 8px 40px;
+    min-height:0;
+  }
+  .free-layer{
+    position:absolute;
+    inset:0;
+    z-index:5;
+    pointer-events:none;
+  }
+
+  .column{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    z-index:1;
+    min-height:0;
+    flex-shrink:0;
+  }
+  .label{
+    font-family:'Space Mono', monospace;
+    font-size: 15px;
+    letter-spacing: 4px;
+    color: var(--dim);
+    white-space:nowrap;
+    flex-shrink:0;
+    margin-bottom:10px;
+  }
+  .stack-count{
+    letter-spacing: 0;
+    color: var(--accent);
+    font-size: 13px;
+  }
+
+  .stack-rows{
+    flex:1;
+    display:flex;
+    flex-direction:column-reverse;
+    min-height:0;
+    overflow:hidden;
+  }
+  .colA .stack-rows{ align-items:flex-end; }
+  .colB .stack-rows{ align-items:flex-start; }
+
+  .add-btn{
+    width: 43px;
+    height: 43px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink);
+    font-size: 21px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: border-color 0.15s, color 0.15s;
+    flex-shrink:0;
+    margin-top:10px;
+  }
+  .add-btn:hover{ border-color: var(--ink); }
+  .add-btn:active{ transform: scale(0.92); }
+  .add-btn:disabled{ opacity:0.3; cursor:not-allowed; }
+  .add-btn:disabled:hover{ border-color: var(--line); }
+
+  .ops-bar{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 30px;
+    padding: 14px 0 20px;
+    flex-shrink:0;
+  }
+  .ops-group{
+    display:flex;
+    gap:10px;
+  }
+  .ops-divider{
+    width:1px;
+    height:37px;
+    background: var(--line);
+  }
+  .op-btn{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    font-family:'Space Mono', monospace;
+    padding:10px 15px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:transparent;
+    color: var(--ink);
+    cursor:pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  }
+  .op-code{
+    font-size:15px;
+    letter-spacing:0.5px;
+    font-weight:700;
+  }
+  .op-name{
+    font-family:'Work Sans', sans-serif;
+    font-size:11px;
+    font-weight:500;
+    letter-spacing:0.2px;
+    color: var(--dim);
+    white-space:nowrap;
+  }
+  .op-btn:hover{ border-color: var(--ink); background: rgba(255,255,255,0.06); }
+  .op-btn:active{ transform: scale(0.94); }
+  .op-btn.flash{ border-color: var(--accent); background: rgba(94,212,138,0.15); }
+  .op-btn:disabled{ opacity:0.3; cursor:not-allowed; }
+  .op-btn:disabled:hover{ border-color: var(--line); background:transparent; }
+
+  #seriesInput:disabled, #movesInput:disabled{ opacity:0.45; cursor:not-allowed; }
+  #loadBtn:disabled{ opacity:0.3; cursor:not-allowed; }
+  #loadBtn:disabled:hover{ background:transparent; }
+
+  #playBtn.is-playing{ border-color:#ff6b52; color:#ff6b52; }
+  #playBtn.is-playing:hover{ background: rgba(255,107,82,0.12); }
+
+  .trash-btn{
+    position: fixed;
+    top: 20px;
+    right: 35px;
+    width: 53px;
+    height: 53px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--dim);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    z-index: 20;
+    transition: border-color 0.15s, color 0.15s, transform 0.15s, background 0.15s;
+  }
+  .trash-btn svg{ width:24px; height:24px; }
+  .trash-btn:hover{ color: var(--ink); border-color: var(--ink); }
+  .trash-btn.armed{
+    background: #4a2420;
+    border-color: #ff6b52;
+    color: #ff6b52;
+    transform: scale(1.15);
+  }
+  .trash-btn:disabled{ opacity:0.3; cursor:not-allowed; transform:none; }
+  .trash-btn:disabled:hover{ color: var(--dim); border-color: var(--line); }
+
+  .casilla-empty, .block-placeholder{
+    border-radius: 6px;
+    border: 1px dashed var(--line);
+    flex-shrink:0;
+  }
+
+  .block{
+    border-radius: 6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    color: var(--block-text);
+    cursor: grab;
+    user-select:none;
+    touch-action:none;
+    pointer-events:auto;
+    flex-shrink:0;
+    overflow:visible;
+    white-space:nowrap;
+  }
+  .block:active{ cursor: grabbing; }
+  .block.a{ background: var(--a); }
+  .block.b{ background: var(--b); }
+  .block.free{ background: var(--free); color: var(--block-text); }
+  .block.dragging{
+    z-index:999;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+    outline: 2px solid rgba(255,255,255,0.1);
+  }
+  .block input{
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-weight: inherit;
+    font-size: inherit;
+    text-align: center;
+    -moz-appearance: textfield;
+  }
+  .block input::-webkit-outer-spin-button,
+  .block input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+  @keyframes settle{
+    0%{ transform: translateY(-8px); opacity: 0.6; }
+    100%{ transform: translateY(0); opacity: 1; }
+  }
+  .block.settle{ animation: settle 0.16s ease-out; }
+
+  @keyframes discard{
+    0%{ transform: scale(1); opacity: 1; }
+    100%{ transform: scale(0.3); opacity: 0; }
+  }
+  .block.discard{ animation: discard 0.18s ease-in forwards; }
+
+  .ctx-menu{
+    position: fixed;
+    z-index: 50;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    padding: 6px;
+    display: none;
+    min-width: 199px;
+  }
+  .ctx-menu.open{ display:block; }
+  .ctx-menu button{
+    display:block;
+    width:100%;
+    text-align:left;
+    padding: 10px 14px;
+    border:none;
+    background:transparent;
+    font-family:'Work Sans', sans-serif;
+    font-size: 17px;
+    color: var(--ink);
+    cursor:pointer;
+    border-radius: 7px;
+  }
+  .ctx-menu button:hover{ background: rgba(255,255,255,0.08); }
+  .ctx-menu button.danger{ color:#ff6b52; }
+
+  .toast{
+    position: fixed;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%) translateY(16px);
+    background: #3a1f1c;
+    border: 1px solid #ff6b52;
+    color: #ffb3a3;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: min(90vw, 560px);
+    text-align: center;
+    z-index: 60;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .toast.show{
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @media (max-width: 700px){
+    .load-bar, .sim-bar{ width:100%; justify-content:center; }
+    .bar-spacer{ display:none; }
+    .board{ gap: 60px; padding: 6px 16px; }
+    #seriesInput, #movesInput{ width: 200px; }
+    #randomCount{ width: 46px; }
+    .step-counter{ min-width: 0; }
+    .ops-bar{ gap: 18px; flex-wrap: wrap; padding: 12px 12px 18px; }
+    .ops-group{ gap: 7px; }
+    .op-btn{ padding: 8px 12px; }
+    .op-code{ font-size: 14px; }
+    .op-name{ font-size: 10px; }
+    #speedRange{ width: 90px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <p class="hint">Drag to move · drop on an occupied slot to insert there · right-click to edit or delete · trash icon to remove</p>
+
+  <div class="load-bar">
+    <button id="copyArrayBtn" class="icon-btn" title="Copy Stack A as {x, y, z}" type="button">{}</button>
+    <button id="copyClipboardBtn" class="icon-btn" title="Copy Stack A space-separated" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2"/>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+      </svg>
+    </button>
+    <input type="text" id="seriesInput" placeholder="Series for Stack A, e.g. 3 8 1 9 4" autocomplete="off" />
+    <button id="loadBtn" title="Replaces the whole canvas: creates these blocks in Stack A" type="button">Load into Stack A</button>
+    <div class="random-wrap">
+      <input type="number" id="randomCount" min="1" max="100" value="10" title="Number of blocks to randomize" autocomplete="off" />
+      <button id="randomBtn" title="Generates a random series of N blocks and loads it into Stack A" type="button">🎲 Randomize</button>
+    </div>
+  </div>
+
+  <div class="sim-bar">
+    <div class="bar-spacer" aria-hidden="true"></div>
+    <input type="text" id="movesInput" placeholder="Simulate moves, e.g. pb sa rr" autocomplete="off" />
+    <div class="speed-wrap">
+      <input type="range" id="speedRange" min="-50" max="1000" step="50" value="500" title="Speed between moves" />
+    </div>
+    <span id="speedLabel" class="speed-wrap">500ms</span>
+    <button id="playBtn" title="Run the move sequence" type="button">▶</button>
+    <button id="resetBtn" title="Reset to the loaded series" type="button">↺</button>
+    <span id="stepCounter" class="step-counter">0/0 steps</span>
+  </div>
+
+  <button class="trash-btn" id="trashBtn" aria-label="Trash" title="Drop a block here to delete it" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 7h16"/>
+      <path d="M9 7V4h6v3"/>
+      <path d="M6 7l1 13h10l1-13"/>
+      <path d="M10 11v6"/>
+      <path d="M14 11v6"/>
+    </svg>
+  </button>
+
+  <div class="board" id="board">
+    <div class="column colA" id="col1">
+      <span class="label">Stack A <span class="stack-count" id="countA">(0)</span></span>
+      <div class="stack-rows" id="stackEl1"></div>
+      <button class="add-btn" data-stack="stack1" title="Add a block to Stack A" type="button">+</button>
+    </div>
+
+    <div class="free-layer" id="freeLayer"></div>
+
+    <div class="column colB" id="col2">
+      <span class="label">Stack B <span class="stack-count" id="countB">(0)</span></span>
+      <div class="stack-rows" id="stackEl2"></div>
+      <button class="add-btn" data-stack="stack2" title="Add a block to Stack B" type="button">+</button>
+    </div>
+  </div>
+
+  <div class="ops-bar" id="opsBar" title="push_swap operations">
+    <div class="ops-group" id="opsA">
+      <button class="op-btn" data-op="sa" title="sa: swaps the first two elements of Stack A. Does nothing if there's one or no elements." type="button">
+        <span class="op-code">sa</span><span class="op-name">Swap A</span>
+      </button>
+      <button class="op-btn" data-op="pa" title="pa: moves the first element of Stack B to the top of Stack A. Does nothing if B is empty." type="button">
+        <span class="op-code">pa</span><span class="op-name">Push A</span>
+      </button>
+      <button class="op-btn" data-op="ra" title="ra: rotates Stack A upward; the first element becomes the last." type="button">
+        <span class="op-code">ra</span><span class="op-name">Rotate A</span>
+      </button>
+      <button class="op-btn" data-op="rra" title="rra: rotates Stack A downward; the last element becomes the first." type="button">
+        <span class="op-code">rra</span><span class="op-name">Rev. Rotate A</span>
+      </button>
+    </div>
+
+    <div class="ops-divider"></div>
+
+    <div class="ops-group" id="opsDouble">
+      <button class="op-btn" data-op="ss" title="ss: applies sa and sb at the same time." type="button">
+        <span class="op-code">ss</span><span class="op-name">Swap A+B</span>
+      </button>
+      <button class="op-btn" data-op="rr" title="rr: applies ra and rb at the same time." type="button">
+        <span class="op-code">rr</span><span class="op-name">Rotate A+B</span>
+      </button>
+      <button class="op-btn" data-op="rrr" title="rrr: applies rra and rrb at the same time." type="button">
+        <span class="op-code">rrr</span><span class="op-name">Rev. Rotate A+B</span>
+      </button>
+    </div>
+
+    <div class="ops-divider"></div>
+
+    <div class="ops-group" id="opsB">
+      <button class="op-btn" data-op="sb" title="sb: swaps the first two elements of Stack B. Does nothing if there's one or no elements." type="button">
+        <span class="op-code">sb</span><span class="op-name">Swap B</span>
+      </button>
+      <button class="op-btn" data-op="pb" title="pb: moves the first element of Stack A to the top of Stack B. Does nothing if A is empty." type="button">
+        <span class="op-code">pb</span><span class="op-name">Push B</span>
+      </button>
+      <button class="op-btn" data-op="rb" title="rb: rotates Stack B upward; the first element becomes the last." type="button">
+        <span class="op-code">rb</span><span class="op-name">Rotate B</span>
+      </button>
+      <button class="op-btn" data-op="rrb" title="rrb: rotates Stack B downward; the last element becomes the first." type="button">
+        <span class="op-code">rrb</span><span class="op-name">Rev. Rotate B</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="ctx-menu" id="ctxMenu">
+    <button id="ctxEdit" type="button">Edit number</button>
+    <button id="ctxDelete" class="danger" type="button">Delete</button>
+  </div>
+
+  <div class="toast" id="toast" role="alert"></div>
+</div>
+
+<script>
+(function(){
+  const board = document.getElementById('board');
+  const freeLayer = document.getElementById('freeLayer');
+  const trashBtn = document.getElementById('trashBtn');
+  const stackEls = { stack1: document.getElementById('stackEl1'), stack2: document.getElementById('stackEl2') };
+  const columns = { stack1: document.getElementById('col1'), stack2: document.getElementById('col2') };
+  const stackCountEls = { stack1: document.getElementById('countA'), stack2: document.getElementById('countB') };
+  const materialFor = { stack1: 'a', stack2: 'b' };
+  const ctxMenu = document.getElementById('ctxMenu');
+  const ctxEdit = document.getElementById('ctxEdit');
+  const ctxDelete = document.getElementById('ctxDelete');
+  const seriesInput = document.getElementById('seriesInput');
+  const loadBtn = document.getElementById('loadBtn');
+  const copyArrayBtn = document.getElementById('copyArrayBtn');
+  const copyClipboardBtn = document.getElementById('copyClipboardBtn');
+  const movesInput = document.getElementById('movesInput');
+  const speedRange = document.getElementById('speedRange');
+  const speedLabel = document.getElementById('speedLabel');
+  // Slider steps -50,0,50,100,...,1000 but the two lowest are remapped so the
+  // exposed sequence reads 0.5, 1, 50, 100, ..., 1000.
+  function getSpeedMs(){
+    const v = parseInt(speedRange.value, 10);
+    if(v === -50) return 0.5;
+    if(v === 0) return 1;
+    return v;
+  }
+  const stepCounter = document.getElementById('stepCounter');
+  const resetBtn = document.getElementById('resetBtn');
+  const playBtn = document.getElementById('playBtn');
+  const randomCount = document.getElementById('randomCount');
+  const randomBtn = document.getElementById('randomBtn');
+  const toast = document.getElementById('toast');
+
+  let simRunning = false;
+  let toastTimer = null;
+
+  function showWarning(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 3500);
+  }
+
+  // ---- sizing constants ----
+  const CENTER_GAP = 140;       // must match .board CSS gap
+  const SIDE_PADDING = 40;      // must match .board CSS horizontal padding
+  const MIN_ROW_HEIGHT = 1;     // smallest bar height a stack can shrink to (numbers hidden below NUMBER_MIN_ROW_HEIGHT)
+  const MAX_ROW_HEIGHT = 70;
+  const ROW_GAP_RATIO = 0.28;
+  const ROW_GAP_MIN = 1;        // smallest gap between rows (kept tiny so it matches MIN_ROW_HEIGHT closely)
+  const ROW_GAP_MAX = 16;
+  const MIN_UNIT = 2;           // smallest px-per-rank-step a bar can shrink to (kept a bit higher than
+                                 // MIN_ROW_HEIGHT so height compresses first/more than width)
+  const MAX_UNIT = 70;
+  const HARD_CAP = 300;         // absolute max blocks, regardless of screen size
+  const NUMBER_MIN_ROW_HEIGHT = 18;  // below this, stack rows show as plain bars (no digits)
+  const NUMBER_MIN_FREE_SIZE = 24;   // same idea for loose/free blocks
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  // Finds the tallest row height (bounded by MIN/MAX_ROW_HEIGHT) whose total
+  // footprint (rows + gaps between them) still fits inside availH. Gaps are
+  // derived from the row height itself (clamped), so this can't be solved
+  // with a plain formula — a short binary search converges instantly since
+  // the total footprint is monotonic in row height.
+  function fitRowHeight(cellCount, availH){
+    function totalFor(h){
+      const gap = clamp(h * ROW_GAP_RATIO, ROW_GAP_MIN, ROW_GAP_MAX);
+      return cellCount * h + Math.max(cellCount - 1, 0) * gap;
+    }
+    let lo = MIN_ROW_HEIGHT, hi = MAX_ROW_HEIGHT;
+    if(totalFor(lo) > availH) return lo; // even the minimum doesn't fit; caller should have capped cellCount
+    for(let i = 0; i < 24; i++){
+      const mid = (lo + hi) / 2;
+      if(totalFor(mid) <= availH) lo = mid; else hi = mid;
+    }
+    return lo;
+  }
+
+  // Max rows that can ever fit vertically at the smallest allowed row size —
+  // computed with the exact same footprint logic as fitRowHeight, so this is
+  // never an overestimate (which was the cause of blocks getting clipped).
+  function maxRowsForHeight(availH){
+    const gapAtMin = clamp(MIN_ROW_HEIGHT * ROW_GAP_RATIO, ROW_GAP_MIN, ROW_GAP_MAX);
+    const n = Math.floor((availH + gapAtMin) / (MIN_ROW_HEIGHT + gapAtMin));
+    return Math.max(1, n);
+  }
+
+  // ---- data model ----
+  let uid = 0;
+  let nextNum = 1;
+  let freeNumbers = []; // sorted ascending, reused smallest-first
+  const stackArrays = { stack1: [], stack2: [] }; // block ids, bottom -> top
+  const freeBlocks = new Map(); // id -> {x, y}
+  const blocksMeta = new Map(); // id -> { num }
+  const blockEls = new Map(); // id -> DOM element (persistent)
+
+  let dragState = null;
+  let ctxTargetId = null;
+
+  // ---- live layout metrics (recomputed on every render) ----
+  let rowHeight = MAX_ROW_HEIGHT, rowGap = 8, rowFont = 18;
+  let unitWidth = MAX_UNIT;
+  let freeSize = 50, freeFont = 18;
+  let capacity = 999;
+  let currentRankMap = new Map();
+
+  function takeNumber(){
+    if(freeNumbers.length){
+      freeNumbers.sort((a,b) => a-b);
+      return freeNumbers.shift();
+    }
+    return nextNum++;
+  }
+  function releaseNumber(n){
+    freeNumbers.push(n);
+    if(n >= nextNum) nextNum = n + 1;
+  }
+
+  function locate(id){
+    if(stackArrays.stack1.includes(id)) return { type:'stack', key:'stack1', index: stackArrays.stack1.indexOf(id) };
+    if(stackArrays.stack2.includes(id)) return { type:'stack', key:'stack2', index: stackArrays.stack2.indexOf(id) };
+    if(freeBlocks.has(id)) return { type:'free' };
+    return null;
+  }
+
+  function removeFromCurrentLocation(id){
+    const loc = locate(id);
+    if(!loc) return;
+    if(loc.type === 'stack') stackArrays[loc.key].splice(loc.index, 1);
+    else freeBlocks.delete(id);
+  }
+
+  // ---- block element lifecycle ----
+  function createBlockEl(id){
+    const el = document.createElement('div');
+    el.className = 'block';
+    el.dataset.id = id;
+    el.addEventListener('pointerdown', onPointerDown);
+    el.addEventListener('contextmenu', onContextMenu);
+    blockEls.set(id, el);
+    return el;
+  }
+
+  function newBlock(){
+    const id = 'b' + (uid++);
+    const num = takeNumber();
+    blocksMeta.set(id, { num });
+    createBlockEl(id);
+    return id;
+  }
+
+  function totalBlockCount(){
+    return stackArrays.stack1.length + stackArrays.stack2.length + freeBlocks.size;
+  }
+
+  function addToStack(stackKey){
+    recomputeMetrics();
+    if(totalBlockCount() >= capacity) return; // silently do nothing at the limit
+    const id = newBlock();
+    stackArrays[stackKey].push(id);
+    render();
+    settleIn(blockEls.get(id));
+  }
+
+  function deleteBlock(id){
+    const meta = blocksMeta.get(id);
+    if(!meta) return;
+    removeFromCurrentLocation(id);
+    releaseNumber(meta.num);
+    const el = blockEls.get(id);
+    if(el){
+      el.classList.add('discard');
+      el.addEventListener('animationend', () => el.remove(), { once:true });
+    }
+    blockEls.delete(id);
+    blocksMeta.delete(id);
+    render();
+  }
+
+  function clearAll(){
+    for(const id of [...blockEls.keys()]){
+      const el = blockEls.get(id);
+      if(el && el.parentElement) el.parentElement.removeChild(el);
+    }
+    blockEls.clear();
+    blocksMeta.clear();
+    stackArrays.stack1 = [];
+    stackArrays.stack2 = [];
+    freeBlocks.clear();
+    uid = 0; nextNum = 1; freeNumbers = [];
+  }
+
+  // ---- snapshot: what "reset" reverts to (last loaded/randomized series) ----
+  let baseSnapshot = null;
+
+  function captureSnapshot(){
+    baseSnapshot = {
+      stack1: stackArrays.stack1.map(id => blocksMeta.get(id).num),
+      stack2: stackArrays.stack2.map(id => blocksMeta.get(id).num),
+    };
+  }
+
+  function restoreSnapshot(){
+    if(!baseSnapshot) return;
+    clearAll();
+    for(const v of baseSnapshot.stack1){
+      const id = 'b' + (uid++);
+      blocksMeta.set(id, { num: v });
+      createBlockEl(id);
+      stackArrays.stack1.push(id);
+    }
+    for(const v of baseSnapshot.stack2){
+      const id = 'b' + (uid++);
+      blocksMeta.set(id, { num: v });
+      createBlockEl(id);
+      stackArrays.stack2.push(id);
+    }
+    const allNums = [...baseSnapshot.stack1, ...baseSnapshot.stack2];
+    nextNum = allNums.length ? Math.max(...allNums) + 1 : 1;
+    freeNumbers = [];
+    render();
+  }
+
+  function loadSeries(){
+    const raw = seriesInput.value.trim();
+    if(!raw) return;
+    // Extract integers directly so pasted formats like "{1, 2, 3}", "[1 2 3]"
+    // or comma/semicolon separated lists all work the same way.
+    const matches = raw.match(/-?\d+/g);
+    let nums = matches ? matches.map(p => parseInt(p, 10)).filter(v => Number.isInteger(v)) : [];
+    if(nums.length === 0) return;
+    recomputeMetrics();
+    if(nums.length > capacity) nums = nums.slice(0, capacity); // silently truncate at the limit
+    clearAll();
+    // stackArrays are stored bottom -> top, and the "first" element (top of
+    // the stack) is the last item of the array. The first number typed by
+    // the user should become that top/first element, so we build the array
+    // in reverse: the last typed number goes in first (bottom).
+    for(const v of [...nums].reverse()){
+      const id = 'b' + (uid++);
+      blocksMeta.set(id, { num: v });
+      createBlockEl(id);
+      stackArrays.stack1.push(id);
+    }
+    nextNum = nums.length ? Math.max(...nums) + 1 : 1;
+    render();
+    captureSnapshot();
+  }
+
+  loadBtn.addEventListener('click', loadSeries);
+  seriesInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); loadSeries(); }
+  });
+
+  // ---- copy Stack A helpers ----
+  // Stored bottom -> top; reversed here so the first number matches the
+  // top of Stack A, mirroring how a typed/pasted series is interpreted.
+  function getStackANums(){
+    return [...stackArrays.stack1].reverse().map(id => blocksMeta.get(id).num);
+  }
+
+  function flashCopied(btn){
+    btn.classList.add('copied');
+    setTimeout(() => btn.classList.remove('copied'), 700);
+  }
+
+  async function copyToClipboard(text, btn){
+    // Try the modern async Clipboard API first (needs a secure context and
+    // permissions that aren't always available inside embedded/iframe pages).
+    try{
+      if(navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(text);
+        flashCopied(btn);
+        return;
+      }
+    }catch(err){ /* fall through to legacy approach */ }
+
+    // Legacy fallback: a hidden, focused textarea + execCommand('copy').
+    // This works in far more embedded/sandboxed contexts than the async API.
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '0';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if(ok){ flashCopied(btn); return; }
+    }catch(err){ /* fall through to warning */ }
+
+    showWarning('Could not copy to clipboard. Select and copy manually: ' + text);
+  }
+
+  copyArrayBtn.addEventListener('click', () => {
+    copyToClipboard('{' + getStackANums().join(', ') + '}', copyArrayBtn);
+  });
+
+  copyClipboardBtn.addEventListener('click', () => {
+    copyToClipboard(getStackANums().join(' '), copyClipboardBtn);
+  });
+
+  function randomizeSeries(){
+    recomputeMetrics();
+    let n = parseInt(randomCount.value, 10);
+    if(!Number.isInteger(n) || n < 1) n = 1;
+    n = Math.min(n, capacity, HARD_CAP);
+    randomCount.value = n;
+
+    const nums = Array.from({ length: n }, (_, i) => i + 1);
+    for(let i = nums.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [nums[i], nums[j]] = [nums[j], nums[i]];
+    }
+    seriesInput.value = nums.join(' ');
+    loadSeries();
+  }
+
+  randomBtn.addEventListener('click', randomizeSeries);
+
+  document.querySelectorAll('.add-btn').forEach(btn => {
+    btn.addEventListener('click', () => addToStack(btn.dataset.stack));
+  });
+
+  // A click on the trash with nothing being dragged wipes every block.
+  // (Dropping a single dragged block on it is handled separately in onPointerUp.)
+  trashBtn.addEventListener('click', () => {
+    if(dragState) return;
+    if(totalBlockCount() === 0) return;
+    clearAll();
+    render();
+  });
+
+  // ---- push_swap-style operations ----
+  // stackArrays[key] is stored bottom -> top, so the "first" element (top,
+  // first to be popped) is the last item of the array.
+  function swapTop(key){
+    const arr = stackArrays[key];
+    if(arr.length < 2) return;
+    const n = arr.length;
+    [arr[n - 1], arr[n - 2]] = [arr[n - 2], arr[n - 1]];
+    render();
+  }
+
+  function pushTop(fromKey, toKey){
+    const src = stackArrays[fromKey];
+    if(src.length === 0) return;
+    const id = src.pop();
+    stackArrays[toKey].push(id);
+    render();
+    settleIn(blockEls.get(id));
+  }
+
+  function rotate(key){
+    const arr = stackArrays[key];
+    if(arr.length < 2) return;
+    const top = arr.pop();
+    arr.unshift(top);
+    render();
+  }
+
+  function reverseRotate(key){
+    const arr = stackArrays[key];
+    if(arr.length < 2) return;
+    const bottom = arr.shift();
+    arr.push(bottom);
+    render();
+  }
+
+  const ops = {
+    sa: () => swapTop('stack1'),
+    sb: () => swapTop('stack2'),
+    ss: () => { swapTop('stack1'); swapTop('stack2'); },
+    pa: () => pushTop('stack2', 'stack1'),
+    pb: () => pushTop('stack1', 'stack2'),
+    ra: () => rotate('stack1'),
+    rb: () => rotate('stack2'),
+    rr: () => { rotate('stack1'); rotate('stack2'); },
+    rra: () => reverseRotate('stack1'),
+    rrb: () => reverseRotate('stack2'),
+    rrr: () => { reverseRotate('stack1'); reverseRotate('stack2'); },
+  };
+
+  const opBtnByCode = {};
+  document.querySelectorAll('.op-btn').forEach(btn => {
+    opBtnByCode[btn.dataset.op] = btn;
+    btn.addEventListener('click', () => {
+      const fn = ops[btn.dataset.op];
+      if(fn) fn();
+    });
+  });
+
+  function settleIn(el){
+    el.classList.add('settle');
+    el.addEventListener('animationend', () => el.classList.remove('settle'), { once:true });
+  }
+
+  // ---- metrics: row height, bar unit width, free-block size, capacity ----
+  function computeRanks(){
+    const set = new Set();
+    for(const id of stackArrays.stack1) set.add(blocksMeta.get(id).num);
+    for(const id of stackArrays.stack2) set.add(blocksMeta.get(id).num);
+    for(const id of freeBlocks.keys()) set.add(blocksMeta.get(id).num);
+    const sorted = [...set].sort((a, b) => a - b);
+    const rankMap = new Map();
+    sorted.forEach((v, i) => rankMap.set(v, i + 1));
+    return { rankMap, maxRank: sorted.length || 1 };
+  }
+
+  function recomputeMetrics(){
+    const availWPerSide = Math.max((window.innerWidth - CENTER_GAP - SIDE_PADDING * 2) / 2, 80);
+
+    // Fix column & row-container width so neither shifts as content changes.
+    columns.stack1.style.width = availWPerSide + 'px';
+    columns.stack2.style.width = availWPerSide + 'px';
+    stackEls.stack1.style.width = availWPerSide + 'px';
+    stackEls.stack2.style.width = availWPerSide + 'px';
+
+    // Measure the real space left for rows (after label + add-btn), so rows
+    // never grow tall enough to overlap the bars above the board.
+    const rowsRect = stackEls.stack1.getBoundingClientRect();
+    const availH = Math.max(rowsRect.height - 4, 40);
+
+    const capV = maxRowsForHeight(availH);
+    const capH = Math.floor(availWPerSide / MIN_UNIT);
+    capacity = Math.max(1, Math.min(capV, capH, HARD_CAP));
+
+    const cellCount = Math.max(stackArrays.stack1.length + stackArrays.stack2.length, 1);
+    rowHeight = fitRowHeight(cellCount, availH);
+    rowGap = clamp(rowHeight * ROW_GAP_RATIO, ROW_GAP_MIN, ROW_GAP_MAX);
+    rowFont = clamp(rowHeight * 0.42, 6, 26);
+
+    const { rankMap, maxRank } = computeRanks();
+    currentRankMap = rankMap;
+    unitWidth = clamp(availWPerSide / maxRank, MIN_UNIT, MAX_UNIT);
+
+    freeSize = clamp(rowHeight * 1.15, 18, 60);
+    freeFont = clamp(freeSize * 0.4, 6, 22);
+  }
+
+  function updateAddButtonsState(){
+    const atCap = totalBlockCount() >= capacity;
+    document.querySelectorAll('.add-btn').forEach(b => { b.disabled = simRunning || atCap; });
+  }
+
+  // ---- render: rebuilds both stack columns from the data model ----
+  function render(){
+    recomputeMetrics();
+    const cellCount = Math.max(stackArrays.stack1.length + stackArrays.stack2.length, 1);
+    stackEls.stack1.style.gap = rowGap + 'px';
+    stackEls.stack2.style.gap = rowGap + 'px';
+    renderColumn('stack1', cellCount);
+    renderColumn('stack2', cellCount);
+    refreshFreeBlocksStyle();
+    updateAddButtonsState();
+    stackCountEls.stack1.textContent = '(' + stackArrays.stack1.length + ')';
+    stackCountEls.stack2.textContent = '(' + stackArrays.stack2.length + ')';
+  }
+
+  function renderColumn(key, cellCount){
+    const container = stackEls[key];
+    const arr = stackArrays[key];
+    container.innerHTML = '';
+    for(let i = 0; i < cellCount; i++){
+      if(i < arr.length){
+        const id = arr[i];
+        const el = blockEls.get(id);
+        const num = blocksMeta.get(id).num;
+        const rank = currentRankMap.get(num) || 1;
+        el.className = 'block ' + materialFor[key];
+        el.style.position = '';
+        el.style.left = '';
+        el.style.top = '';
+        el.style.width = (rank * unitWidth) + 'px';
+        el.style.height = rowHeight + 'px';
+        el.style.fontSize = rowFont + 'px';
+        el.textContent = rowHeight >= NUMBER_MIN_ROW_HEIGHT ? num : '';
+        container.appendChild(el);
+      } else {
+        const ph = document.createElement('div');
+        ph.className = 'casilla-empty';
+        ph.style.width = unitWidth + 'px';
+        ph.style.height = rowHeight + 'px';
+        container.appendChild(ph);
+      }
+    }
+  }
+
+  function refreshFreeBlocksStyle(){
+    for(const id of freeBlocks.keys()){
+      const el = blockEls.get(id);
+      if(!el) continue;
+      el.style.width = freeSize + 'px';
+      el.style.height = freeSize + 'px';
+      el.style.fontSize = freeFont + 'px';
+      el.textContent = freeSize >= NUMBER_MIN_FREE_SIZE ? blocksMeta.get(id).num : '';
+    }
+  }
+
+  function renderFreeBlock(id){
+    const el = blockEls.get(id);
+    const pos = freeBlocks.get(id);
+    el.className = 'block free';
+    el.style.position = 'absolute';
+    el.style.left = pos.x + 'px';
+    el.style.top = pos.y + 'px';
+    el.style.width = freeSize + 'px';
+    el.style.height = freeSize + 'px';
+    el.style.fontSize = freeFont + 'px';
+    el.textContent = freeSize >= NUMBER_MIN_FREE_SIZE ? blocksMeta.get(id).num : '';
+    freeLayer.appendChild(el);
+  }
+
+  // ---- dragging ----
+  function onPointerDown(e){
+    if(e.button !== undefined && e.button !== 0) return;
+    const block = e.currentTarget;
+    if(block.querySelector('input')) return; // don't drag while editing
+    e.preventDefault();
+    const id = block.dataset.id;
+
+    const boardRect = board.getBoundingClientRect();
+    const blockRect = block.getBoundingClientRect();
+    // Where within the block (as a fraction) the cursor grabbed it. Once the
+    // block resizes to freeSize below, we reapply this same fraction so the
+    // grabbed point stays under the cursor instead of jumping.
+    const fracX = (e.clientX - blockRect.left) / blockRect.width;
+    const fracY = (e.clientY - blockRect.top) / blockRect.height;
+    const offsetX = fracX * freeSize;
+    const offsetY = fracY * freeSize;
+
+    // leave a same-size hole in place; the data model is untouched until drop
+    const loc = locate(id);
+    let placeholder = null;
+    if(loc && loc.type === 'stack'){
+      placeholder = document.createElement('div');
+      placeholder.className = 'block-placeholder';
+      placeholder.style.width = blockRect.width + 'px';
+      placeholder.style.height = blockRect.height + 'px';
+      block.parentElement.insertBefore(placeholder, block);
+    }
+
+    let left = (e.clientX - boardRect.left) - offsetX;
+    let top = (e.clientY - boardRect.top) - offsetY;
+    left = Math.max(0, Math.min(left, boardRect.width - freeSize));
+    top = Math.max(0, Math.min(top, boardRect.height - freeSize));
+
+    freeLayer.appendChild(block);
+    block.style.position = 'absolute';
+    block.style.left = left + 'px';
+    block.style.top = top + 'px';
+    block.style.width = freeSize + 'px';
+    block.style.height = freeSize + 'px';
+    block.style.fontSize = freeFont + 'px';
+    const originClass = loc && loc.type === 'stack' ? materialFor[loc.key] : 'free';
+    block.className = 'block dragging ' + originClass;
+    block.textContent = freeSize >= NUMBER_MIN_FREE_SIZE ? blocksMeta.get(id).num : '';
+
+    dragState = { id, block, placeholder, offsetX, offsetY, boardRect, x: left, y: top, raf: null, pointerId: e.pointerId };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+  }
+
+  function onPointerMove(e){
+    if(!dragState || e.pointerId !== dragState.pointerId) return;
+    const { block, offsetX, offsetY, boardRect } = dragState;
+    let x = e.clientX - boardRect.left - offsetX;
+    let y = e.clientY - boardRect.top - offsetY;
+    x = Math.max(0, Math.min(x, boardRect.width - block.offsetWidth));
+    y = Math.max(0, Math.min(y, boardRect.height - block.offsetHeight));
+    dragState.x = x;
+    dragState.y = y;
+    trashBtn.classList.toggle('armed', isNearTrash(e.clientX, e.clientY));
+    if(dragState.raf === null) dragState.raf = requestAnimationFrame(applyPosition);
+  }
+
+  function applyPosition(){
+    if(!dragState) return;
+    dragState.block.style.left = dragState.x + 'px';
+    dragState.block.style.top = dragState.y + 'px';
+    dragState.raf = null;
+  }
+
+  function isNearColumn(clientX, clientY, key){
+    const r = columns[key].getBoundingClientRect();
+    const m = 90;
+    return clientX >= r.left - m && clientX <= r.right + m && clientY >= r.top - m && clientY <= r.bottom + m;
+  }
+
+  function isNearTrash(clientX, clientY){
+    const r = trashBtn.getBoundingClientRect();
+    const m = 36;
+    return clientX >= r.left - m && clientX <= r.right + m && clientY >= r.top - m && clientY <= r.bottom + m;
+  }
+
+  function casillaIndexFor(key, clientY){
+    const cellCount = Math.max(stackArrays.stack1.length + stackArrays.stack2.length, 1);
+    const r = stackEls[key].getBoundingClientRect();
+    const cellH = rowHeight + rowGap;
+    const idx = Math.floor((r.bottom - clientY) / cellH);
+    return Math.max(0, Math.min(idx, cellCount));
+  }
+
+  function onPointerUp(e){
+    if(!dragState || e.pointerId !== dragState.pointerId) return;
+    const { id, block, placeholder } = dragState;
+
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    window.removeEventListener('pointercancel', onPointerUp);
+    trashBtn.classList.remove('armed');
+    if(dragState.raf !== null) cancelAnimationFrame(dragState.raf);
+    if(placeholder) placeholder.remove();
+
+    // data model only changes now, at drop time
+    if(isNearTrash(e.clientX, e.clientY)){
+      block.style.position = '';
+      deleteBlock(id);
+      dragState = null;
+      return;
+    }
+
+    removeFromCurrentLocation(id);
+
+    let target = null, bestDist = Infinity;
+    for(const key of ['stack1', 'stack2']){
+      if(isNearColumn(e.clientX, e.clientY, key)){
+        const r = columns[key].getBoundingClientRect();
+        const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+        const d = Math.hypot(e.clientX - cx, e.clientY - cy);
+        if(d < bestDist){ bestDist = d; target = key; }
+      }
+    }
+
+    if(target){
+      const arr = stackArrays[target];
+      let idx = casillaIndexFor(target, e.clientY);
+      if(idx < arr.length){
+        arr.splice(idx, 0, id); // occupied casilla: insert there
+      } else {
+        arr.push(id); // empty / above top: gravity to the top
+      }
+      render();
+      settleIn(blockEls.get(id));
+    } else {
+      freeBlocks.set(id, { x: dragState.x, y: dragState.y });
+      renderFreeBlock(id);
+      settleIn(block);
+      render(); // in case this block left a stack, both columns must resize
+    }
+
+    dragState = null;
+  }
+
+  // ---- context menu: edit number / delete ----
+  function onContextMenu(e){
+    e.preventDefault();
+    const block = e.currentTarget;
+    ctxTargetId = block.dataset.id;
+    ctxMenu.style.left = e.clientX + 'px';
+    ctxMenu.style.top = e.clientY + 'px';
+    ctxMenu.classList.add('open');
+  }
+
+  function closeCtxMenu(){
+    ctxMenu.classList.remove('open');
+  }
+
+  document.addEventListener('pointerdown', (e) => {
+    if(ctxMenu.classList.contains('open') && !ctxMenu.contains(e.target)) closeCtxMenu();
+  });
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeCtxMenu(); });
+
+  ctxDelete.addEventListener('click', () => {
+    if(ctxTargetId) deleteBlock(ctxTargetId);
+    closeCtxMenu();
+  });
+
+  ctxEdit.addEventListener('click', () => {
+    const id = ctxTargetId;
+    closeCtxMenu();
+    if(!id) return;
+    const el = blockEls.get(id);
+    const meta = blocksMeta.get(id);
+    const oldNum = meta.num;
+
+    el.textContent = '';
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.value = oldNum;
+    el.appendChild(input);
+    input.focus();
+    input.select();
+
+    let done = false;
+    function commit(){
+      if(done) return; done = true;
+      const val = parseInt(input.value, 10);
+      if(!Number.isInteger(val)){
+        render();
+        return;
+      }
+      if(val === oldNum){
+        render();
+        return;
+      }
+      const inUse = [...blocksMeta.entries()].some(([bid, m]) => bid !== id && m.num === val);
+      if(inUse){
+        render();
+        return;
+      }
+      releaseNumber(oldNum);
+      const idxFree = freeNumbers.indexOf(val);
+      if(idxFree !== -1) freeNumbers.splice(idxFree, 1);
+      if(val >= nextNum) nextNum = val + 1;
+      meta.num = val;
+      render();
+    }
+
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+      if(e.key === 'Escape'){ e.preventDefault(); done = true; render(); }
+    });
+  });
+
+  window.addEventListener('resize', render);
+
+  // ---- moves simulation ----
+  // Pasted newlines are normalized to spaces, so "pb\nsa\nrr" behaves the
+  // same as "pb sa rr" — either whitespace form is a valid separator.
+  movesInput.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    const cleaned = text.replace(/[\r\n]+/g, ' ');
+    const start = movesInput.selectionStart, end = movesInput.selectionEnd;
+    const val = movesInput.value;
+    movesInput.value = val.slice(0, start) + cleaned + val.slice(end);
+    const pos = start + cleaned.length;
+    movesInput.setSelectionRange(pos, pos);
+  });
+
+  speedRange.addEventListener('input', () => {
+    speedLabel.textContent = getSpeedMs() + 'ms';
+  });
+
+  let simTimer = null;   // active only while actually playing (not while paused)
+  let simTokens = null;  // the parsed move sequence currently in progress, or null
+  let simIndex = 0;      // how many of simTokens have executed so far
+
+  function flashOpBtn(code){
+    const btn = opBtnByCode[code];
+    if(!btn) return;
+    btn.classList.add('flash');
+    setTimeout(() => btn.classList.remove('flash'), Math.min(300, getSpeedMs()));
+  }
+
+  function pluralize(n, word){ return n === 1 ? word : word + 's'; }
+
+  function updateStepCounter(){
+    const total = simTokens ? simTokens.length : 0;
+    stepCounter.textContent = `${simIndex}/${total} ${pluralize(total, 'step')}`;
+  }
+
+  function updatePlayButton(){
+    const playing = !!simTimer;
+    playBtn.classList.toggle('is-playing', playing);
+    playBtn.textContent = playing ? '❚❚' : '▶';
+    if(playing) playBtn.title = 'Pause the simulation';
+    else if(simTokens && simIndex < simTokens.length) playBtn.title = 'Resume the simulation';
+    else playBtn.title = 'Run the move sequence';
+  }
+
+  // A sequence is "in progress" (locks the rest of the UI) from the moment
+  // it starts until it either finishes or is reset — whether it's actively
+  // playing or sitting paused in between.
+  function sequenceInProgress(){
+    return !!simTokens && simIndex < simTokens.length;
+  }
+
+  // During playback/pause every button locks except play and reset.
+  function refreshLockState(){
+    const locked = sequenceInProgress();
+    simRunning = locked;
+    loadBtn.disabled = locked;
+    seriesInput.disabled = locked;
+    copyArrayBtn.disabled = locked;
+    copyClipboardBtn.disabled = locked;
+    movesInput.disabled = locked;
+    trashBtn.disabled = locked;
+    randomBtn.disabled = locked;
+    randomCount.disabled = locked;
+    document.querySelectorAll('.op-btn').forEach(b => { b.disabled = locked; });
+    updateAddButtonsState();
+  }
+
+  function finishSimulation(){
+    simTimer = null;
+    simTokens = null;
+    simIndex = 0;
+    updateStepCounter();
+    refreshLockState();
+    updatePlayButton();
+  }
+
+  function pauseSimulation(){
+    if(simTimer){ clearTimeout(simTimer); simTimer = null; }
+    refreshLockState();
+    updatePlayButton();
+  }
+
+  function stepLoop(){
+    if(!simTokens || simIndex >= simTokens.length){
+      finishSimulation();
+      return;
+    }
+    const code = simTokens[simIndex];
+    ops[code]();
+    flashOpBtn(code);
+    simIndex++;
+    updateStepCounter();
+    if(simIndex >= simTokens.length){
+      finishSimulation();
+      return;
+    }
+    const delay = getSpeedMs();
+    simTimer = setTimeout(stepLoop, delay);
+  }
+
+  function startOrResume(){
+    if(simTimer) return; // already playing
+    if(!sequenceInProgress()){
+      // fresh start: parse the moves box
+      const tokens = movesInput.value.trim().split(/\s+/).filter(Boolean).map(t => t.toLowerCase());
+      if(tokens.length === 0) return;
+      const invalid = tokens.filter(t => !ops[t]);
+      if(invalid.length > 0){
+        showWarning('Invalid move(s): ' + invalid.join(', ') + ' — valid: sa, sb, ss, pa, pb, ra, rb, rr, rra, rrb, rrr');
+        return;
+      }
+      simTokens = tokens;
+      simIndex = 0;
+    }
+    refreshLockState();
+    updatePlayButton();
+    updateStepCounter();
+    stepLoop();
+  }
+
+  function resetSimulation(){
+    if(simTimer){ clearTimeout(simTimer); simTimer = null; }
+    simTokens = null;
+    simIndex = 0;
+    restoreSnapshot();
+    updateStepCounter();
+    refreshLockState();
+    updatePlayButton();
+  }
+
+  playBtn.addEventListener('click', () => {
+    if(simTimer) pauseSimulation();
+    else startOrResume();
+  });
+  resetBtn.addEventListener('click', resetSimulation);
+  movesInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); if(!simRunning) startOrResume(); }
+  });
+
+  updateStepCounter();
+
+  // ---- seed ----
+  addToStack('stack1');
+  addToStack('stack1');
+  addToStack('stack2');
+  captureSnapshot();
+})();
+</script>
+</body>
+</html>
