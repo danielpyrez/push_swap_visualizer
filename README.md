@@ -32,9 +32,9 @@ This project was built collaboratively with [Claude](https://claude.ai) (Anthrop
 
 This is a single self-contained HTML file — no build step, no dependencies.
 
-1. Download `push_swap_visualizer.html` and `icon.svg` and keep them in the **same folder**
+1. Download `index.html` and `icon.svg` and keep them in the **same folder**
    (the favicon is loaded as a relative path).
-2. Open `push_swap_visualizer.html` in any modern browser.
+2. Open `index.html` in any modern browser.
 
 ## Usage tips
 
