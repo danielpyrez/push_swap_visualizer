@@ -522,7 +522,7 @@
     <div class="bar-spacer" aria-hidden="true"></div>
     <input type="text" id="movesInput" placeholder="Simulate moves, e.g. pb sa rr" autocomplete="off" />
     <div class="speed-wrap">
-      <input type="range" id="speedRange" min="-50" max="1000" step="50" value="500" title="Speed between moves" />
+      <input type="range" id="speedRange" min="-100" max="1000" step="50" value="500" title="Speed between moves" />
     </div>
     <span id="speedLabel" class="speed-wrap">500ms</span>
     <button id="playBtn" title="Run the move sequence" type="button">▶</button>
@@ -631,10 +631,11 @@
   const movesInput = document.getElementById('movesInput');
   const speedRange = document.getElementById('speedRange');
   const speedLabel = document.getElementById('speedLabel');
-  // Slider steps -50,0,50,100,...,1000 but the two lowest are remapped so the
-  // exposed sequence reads 0.5, 1, 50, 100, ..., 1000.
+  // Slider steps -100,-50,0,50,100,...,1000 but the three lowest are remapped so the
+  // exposed sequence reads 0.1, 0.5, 1, 50, 100, ..., 1000.
   function getSpeedMs(){
     const v = parseInt(speedRange.value, 10);
+    if(v === -100) return 0.1;
     if(v === -50) return 0.5;
     if(v === 0) return 1;
     return v;
