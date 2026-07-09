@@ -513,7 +513,7 @@
     <input type="text" id="seriesInput" placeholder="Series for Stack A, e.g. 3 8 1 9 4" autocomplete="off" />
     <button id="loadBtn" title="Replaces the whole canvas: creates these blocks in Stack A" type="button">Load into Stack A</button>
     <div class="random-wrap">
-      <input type="number" id="randomCount" min="1" max="100" value="10" title="Number of blocks to randomize" autocomplete="off" />
+      <input type="number" id="randomCount" min="1" max="500" value="10" title="Number of blocks to randomize" autocomplete="off" />
       <button id="randomBtn" title="Generates a random series of N blocks and loads it into Stack A" type="button">🎲 Randomize</button>
     </div>
   </div>
@@ -660,19 +660,32 @@
   // ---- sizing constants ----
   const CENTER_GAP = 140;       // must match .board CSS gap
   const SIDE_PADDING = 40;      // must match .board CSS horizontal padding
-  const MIN_ROW_HEIGHT = 1;     // smallest bar height a stack can shrink to (numbers hidden below NUMBER_MIN_ROW_HEIGHT)
+  const MIN_ROW_HEIGHT = 0.4;   // smallest bar height a stack can shrink to (numbers hidden below NUMBER_MIN_ROW_HEIGHT).
+                                 // Kept well under a pixel so 500 dense blocks still fit vertically on normal screens
+                                 // instead of the randomizer silently truncating below the requested count.
   const MAX_ROW_HEIGHT = 70;
   const ROW_GAP_RATIO = 0.28;
-  const ROW_GAP_MIN = 1;        // smallest gap between rows (kept tiny so it matches MIN_ROW_HEIGHT closely)
+  const ROW_GAP_MIN = 0;        // gap fully collapses to 0 once rows get dense/tiny, so packed
+                                 // rows read as one solid strip instead of showing hairline seams
+                                 // that alias into moiré/pixel noise at small sizes.
   const ROW_GAP_MAX = 16;
-  const MIN_UNIT = 2;           // smallest px-per-rank-step a bar can shrink to (kept a bit higher than
-                                 // MIN_ROW_HEIGHT so height compresses first/more than width)
+  const MIN_UNIT = 0.4;         // smallest px-per-rank-step a bar can shrink to. Kept just as low as
+                                 // MIN_ROW_HEIGHT so width compression can also reach 500 blocks on normal screens.
   const MAX_UNIT = 70;
-  const HARD_CAP = 300;         // absolute max blocks, regardless of screen size
+  const HARD_CAP = 500;         // absolute max blocks, regardless of screen size
   const NUMBER_MIN_ROW_HEIGHT = 18;  // below this, stack rows show as plain bars (no digits)
   const NUMBER_MIN_FREE_SIZE = 24;   // same idea for loose/free blocks
+  const GAP_COLLAPSE_ROW_HEIGHT = 6; // below this row height, force the gap to 0 outright
 
   function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  // The effective gap between two rows of height h — 0 once rows are dense enough
+  // that a gap would just show as a hairline seam (see GAP_COLLAPSE_ROW_HEIGHT).
+  // Both fitRowHeight and maxRowsForHeight route through this so the capacity math
+  // always matches what render() actually draws, instead of under-counting capacity.
+  function effectiveGap(h){
+    return h < GAP_COLLAPSE_ROW_HEIGHT ? 0 : clamp(h * ROW_GAP_RATIO, ROW_GAP_MIN, ROW_GAP_MAX);
+  }
 
   // Finds the tallest row height (bounded by MIN/MAX_ROW_HEIGHT) whose total
   // footprint (rows + gaps between them) still fits inside availH. Gaps are
@@ -681,8 +694,7 @@
   // the total footprint is monotonic in row height.
   function fitRowHeight(cellCount, availH){
     function totalFor(h){
-      const gap = clamp(h * ROW_GAP_RATIO, ROW_GAP_MIN, ROW_GAP_MAX);
-      return cellCount * h + Math.max(cellCount - 1, 0) * gap;
+      return cellCount * h + Math.max(cellCount - 1, 0) * effectiveGap(h);
     }
     let lo = MIN_ROW_HEIGHT, hi = MAX_ROW_HEIGHT;
     if(totalFor(lo) > availH) return lo; // even the minimum doesn't fit; caller should have capped cellCount
@@ -695,9 +707,10 @@
 
   // Max rows that can ever fit vertically at the smallest allowed row size —
   // computed with the exact same footprint logic as fitRowHeight, so this is
-  // never an overestimate (which was the cause of blocks getting clipped).
+  // never an overestimate (which was the cause of blocks getting clipped) and
+  // never an underestimate either (which was the cause of 500 not being reachable).
   function maxRowsForHeight(availH){
-    const gapAtMin = clamp(MIN_ROW_HEIGHT * ROW_GAP_RATIO, ROW_GAP_MIN, ROW_GAP_MAX);
+    const gapAtMin = effectiveGap(MIN_ROW_HEIGHT);
     const n = Math.floor((availH + gapAtMin) / (MIN_ROW_HEIGHT + gapAtMin));
     return Math.max(1, n);
   }
@@ -1048,7 +1061,10 @@
 
     const cellCount = Math.max(stackArrays.stack1.length + stackArrays.stack2.length, 1);
     rowHeight = fitRowHeight(cellCount, availH);
-    rowGap = clamp(rowHeight * ROW_GAP_RATIO, ROW_GAP_MIN, ROW_GAP_MAX);
+    // Once rows are packed tight enough, drop the gap entirely so dense
+    // stacks render as one clean strip instead of a hairline-striped one
+    // that aliases into moiré/pixel noise at fractional pixel sizes.
+    rowGap = rowHeight < GAP_COLLAPSE_ROW_HEIGHT ? 0 : clamp(rowHeight * ROW_GAP_RATIO, ROW_GAP_MIN, ROW_GAP_MAX);
     rowFont = clamp(rowHeight * 0.42, 6, 26);
 
     const { rankMap, maxRank } = computeRanks();
